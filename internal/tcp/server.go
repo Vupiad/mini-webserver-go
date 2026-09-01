@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -42,6 +43,9 @@ func (s *Server) Start(ctx context.Context) error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				break
+			}
 			fmt.Printf("Failed to accept connection: %v\n", err)
 			break
 		}
