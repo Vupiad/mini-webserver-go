@@ -38,8 +38,9 @@ func ParseRequest(req *Request, data []byte) error {
 
 	remainBytes := data[reqLineEnd+2:]
 
+	req.Headers = req.Headers[:0]
 	for {
-		if remainBytes[0] == '\r' && remainBytes[1] == '\n' {
+		if len(remainBytes) >= 2 && remainBytes[0] == '\r' && remainBytes[1] == '\n' {
 			req.Body = remainBytes[2:]
 			contentLengthErr := extractContentLength(req)
 			if contentLengthErr != nil {
@@ -74,6 +75,10 @@ func parseRequestLine(req *Request, line []byte) error {
 	}
 	req.Path = line[space1+1 : space1+1+space2]
 	req.Protocol = line[space1+1+space2+1:]
+
+	if !bytes.Equal(req.Protocol, []byte("HTTP/1.1")) && !bytes.Equal(req.Protocol, []byte("HTTP/1.0")) {
+		return ErrMalformedRequest
+	}
 
 	return nil
 }
