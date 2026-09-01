@@ -4,16 +4,30 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 )
 
 type Router struct {
-	routes map[string]Handler
+	routes      map[string]Handler
+	requestPool sync.Pool
+	bufferPool  sync.Pool
 }
 
 func NewRouter() *Router {
 	return &Router{
 		routes: make(map[string]Handler),
+		requestPool: sync.Pool{
+			New: func() interface{} {
+				return &Request{Headers: make([]Header, 0, 20)}
+			},
+		},
+		bufferPool: sync.Pool{
+			New: func() interface{} {
+				b := make([]byte, 4096)
+				return &b
+			},
+		},
 	}
 }
 
@@ -26,13 +40,21 @@ func (r *Router) ServeTCP(ctx context.Context, conn net.Conn) {
 
 	conn.SetDeadline(time.Now().Add(5 * time.Second))
 
-	buffer := make([]byte, 4096)
+	bufferPtr := r.bufferPool.Get().(*[]byte)
+	buffer := *bufferPtr
+	defer r.bufferPool.Put(bufferPtr)
+
+	req := r.requestPool.Get().(*Request)
+	defer func() {
+		req.Reset()
+		r.requestPool.Put(req)
+	}()
+
 	n, err := conn.Read(buffer)
+
 	if err != nil {
 		return
 	}
-
-	req := &Request{Headers: make([]Header, 0, 20)}
 
 	if err := ParseRequest(req, buffer[:n]); err != nil {
 		conn.Write([]byte("HTTP/1.1 400 Bad Request\r\nContent-Length: 11\r\n\r\nBad Request"))

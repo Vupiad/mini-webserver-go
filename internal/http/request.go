@@ -25,6 +25,15 @@ var (
 	crlf                = []byte("\r\n")
 )
 
+func (req *Request) Reset() {
+	req.Method = nil
+	req.Path = nil
+	req.Protocol = nil
+	req.Headers = req.Headers[:0]
+	req.ContentLength = 0
+	req.Body = nil
+}
+
 func ParseRequest(req *Request, data []byte) error {
 	reqLineEnd := bytes.Index(data, crlf)
 	if reqLineEnd == -1 {
