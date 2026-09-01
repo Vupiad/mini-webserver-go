@@ -45,6 +45,9 @@ func (r *Router) ServeTCP(ctx context.Context, conn net.Conn) {
 	defer r.bufferPool.Put(bufferPtr)
 
 	req := r.requestPool.Get().(*Request)
+
+	req.conn = conn
+
 	defer func() {
 		req.Reset()
 		r.requestPool.Put(req)

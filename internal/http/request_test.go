@@ -77,8 +77,8 @@ func TestParseRequest(t *testing.T) {
 						}
 					}
 				}
-				if !bytes.Equal(req.Body, tc.expectedBody) {
-					t.Errorf("expected body %s, got %s", tc.expectedBody, req.Body)
+				if !bytes.Equal(req.ReadBody, tc.expectedBody) {
+					t.Errorf("expected body %s, got %s", tc.expectedBody, req.ReadBody)
 				}
 			}
 		})

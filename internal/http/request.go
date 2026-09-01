@@ -3,6 +3,8 @@ package http
 import (
 	"bytes"
 	"errors"
+	"io"
+	"net"
 )
 
 type Header struct {
@@ -17,7 +19,9 @@ type Request struct {
 	Headers  []Header
 
 	ContentLength uint32
-	Body          []byte
+	ReadBody      []byte
+	conn          net.Conn
+	BodyBytesRead uint32
 }
 
 var (
@@ -31,9 +35,35 @@ func (req *Request) Reset() {
 	req.Protocol = nil
 	req.Headers = req.Headers[:0]
 	req.ContentLength = 0
-	req.Body = nil
+	req.ReadBody = nil
+	req.BodyBytesRead = 0
+	req.conn = nil
+
 }
 
+func (req *Request) Read(p []byte) (int, error) {
+	if req.BodyBytesRead >= req.ContentLength {
+		return 0, io.EOF
+	}
+
+	if len(req.ReadBody) > 0 {
+		n := copy(p, req.ReadBody)
+		req.ReadBody = req.ReadBody[n:]
+		req.BodyBytesRead += uint32(n)
+		return n, nil
+	}
+
+	bytesLeft := req.ContentLength - req.BodyBytesRead
+
+	if len(p) > int(bytesLeft) {
+		p = p[:bytesLeft]
+	}
+
+	n, err := req.conn.Read(p)
+	req.BodyBytesRead += uint32(n)
+
+	return n, err
+}
 func ParseRequest(req *Request, data []byte) error {
 	reqLineEnd := bytes.Index(data, crlf)
 	if reqLineEnd == -1 {
@@ -50,7 +80,7 @@ func ParseRequest(req *Request, data []byte) error {
 	req.Headers = req.Headers[:0]
 	for {
 		if len(remainBytes) >= 2 && remainBytes[0] == '\r' && remainBytes[1] == '\n' {
-			req.Body = remainBytes[2:]
+			req.ReadBody = remainBytes[2:]
 			contentLengthErr := extractContentLength(req)
 			if contentLengthErr != nil {
 				return contentLengthErr
