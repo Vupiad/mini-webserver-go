@@ -80,6 +80,7 @@ func (n *node) search(method []byte, path []byte, req *Request) (Handler, bool) 
 				req.Params = make(map[string][]byte)
 			}
 			req.Params[curr.paramName] = segment
+			continue
 		}
 
 		return nil, false
