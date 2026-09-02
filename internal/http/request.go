@@ -22,6 +22,8 @@ type Request struct {
 	ReadBody      []byte
 	conn          net.Conn
 	BodyBytesRead uint32
+
+	Params map[string][]byte
 }
 
 var (

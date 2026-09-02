@@ -9,14 +9,14 @@ import (
 )
 
 type Router struct {
-	routes      map[string]Handler
+	root        *node
 	requestPool sync.Pool
 	bufferPool  sync.Pool
 }
 
 func NewRouter() *Router {
 	return &Router{
-		routes: make(map[string]Handler),
+		root: newNode(),
 		requestPool: sync.Pool{
 			New: func() interface{} {
 				return &Request{Headers: make([]Header, 0, 20)}
@@ -31,8 +31,8 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) AddRoute(path string, handler HandlerFunc) {
-	r.routes[path] = handler
+func (r *Router) AddRoute(method string, path string, handler HandlerFunc) {
+	r.root.insert(method, path, handler)
 }
 
 func (r *Router) ServeTCP(ctx context.Context, conn net.Conn) {
@@ -66,7 +66,7 @@ func (r *Router) ServeTCP(ctx context.Context, conn net.Conn) {
 
 	res := &ResponseWriter{Conn: conn}
 
-	if handler, ok := r.routes[string(req.Path)]; ok {
+	if handler, ok := r.root.search(req.Method, req.Path, req); ok {
 		fmt.Println("Handling request for path:", string(req.Path))
 		handler.ServeHTTP(req, res)
 	} else {
