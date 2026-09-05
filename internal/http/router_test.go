@@ -21,20 +21,20 @@ func (m *mockConn) Read(b []byte) (n int, err error) {
 func (m *mockConn) Write(b []byte) (n int, err error) {
 	return m.writeBuffer.Write(b)
 }
-func (m *mockConn) Close() error { 
+func (m *mockConn) Close() error {
 	m.closed = true
-	return nil 
+	return nil
 }
-func (m *mockConn) LocalAddr() net.Addr { return nil }
-func (m *mockConn) RemoteAddr() net.Addr { return nil }
-func (m *mockConn) SetDeadline(t time.Time) error { return nil }
-func (m *mockConn) SetReadDeadline(t time.Time) error { return nil }
+func (m *mockConn) LocalAddr() net.Addr                { return nil }
+func (m *mockConn) RemoteAddr() net.Addr               { return nil }
+func (m *mockConn) SetDeadline(t time.Time) error      { return nil }
+func (m *mockConn) SetReadDeadline(t time.Time) error  { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
 
 func TestRouterServeTCP(t *testing.T) {
 	router := NewRouter()
 	router.AddRoute("GET", "/hello", func(req *Request, res *ResponseWriter) {
-		res.WriteString(200, "Hello!")
+		res.Write([]byte("Hello!"))
 	})
 
 	tests := []struct {
@@ -50,12 +50,12 @@ func TestRouterServeTCP(t *testing.T) {
 		{
 			name:           "not found",
 			requestPayload: []byte("GET /unknown HTTP/1.1\r\nHost: localhost\r\n\r\n"),
-			expectedBody:   "Not Found", 
+			expectedBody:   "Not Found",
 		},
 		{
 			name:           "bad request",
-			requestPayload: []byte("INVALID_REQUEST_LINE\r\n\r\n"), 
-			expectedBody:   "Bad Request", 
+			requestPayload: []byte("INVALID_REQUEST_LINE\r\n\r\n"),
+			expectedBody:   "Bad Request",
 		},
 	}
 
