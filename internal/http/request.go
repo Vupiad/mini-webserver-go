@@ -12,6 +12,11 @@ type Header struct {
 	Value []byte
 }
 
+type KV struct {
+	Key   string
+	Value string
+}
+
 type Request struct {
 	Method   []byte
 	Path     []byte
@@ -24,6 +29,8 @@ type Request struct {
 	BodyBytesRead uint32
 
 	Params map[string][]byte
+
+	Locals []KV
 }
 
 var (
@@ -31,6 +38,18 @@ var (
 	crlf                = []byte("\r\n")
 )
 
+func (req *Request) Set(key, value string) {
+	req.Locals = append(req.Locals, KV{Key: key, Value: value})
+}
+
+func (req *Request) Get(key string) (string, bool) {
+	for _, kv := range req.Locals {
+		if kv.Key == key {
+			return kv.Value, true
+		}
+	}
+	return "", false
+}
 func (req *Request) Reset() {
 	req.Method = nil
 	req.Path = nil
@@ -40,7 +59,7 @@ func (req *Request) Reset() {
 	req.ReadBody = nil
 	req.BodyBytesRead = 0
 	req.conn = nil
-
+	req.Locals = req.Locals[:0]
 }
 
 func (req *Request) Read(p []byte) (int, error) {

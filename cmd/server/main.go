@@ -10,12 +10,13 @@ import (
 func main() {
 	router := http.NewRouter()
 
+	router.Use(http.Logger())
 	router.AddRoute("GET", "/", func(req *http.Request, rw *http.ResponseWriter) {
-		rw.WriteString(200, "Hello, World!")
+		rw.Write([]byte("Hello, World!"))
 	})
-	router.AddRoute("GET", "/hello/:name", func(req *http.Request, rw *http.ResponseWriter) {
-		name := req.Params["name"]
-		rw.WriteString(200, fmt.Sprintf("Hello, %s!", name))
+
+	router.AddRoute("GET", "/servername", func(req *http.Request, rw *http.ResponseWriter) {
+		rw.Write([]byte("Server Name: My Go Server"))
 	})
 
 	Server := &tcp.Server{

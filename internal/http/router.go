@@ -13,6 +13,8 @@ type Router struct {
 	requestPool  sync.Pool
 	bufferPool   sync.Pool
 	responsePool sync.Pool
+
+	middlewares []Middleware
 }
 
 func NewRouter() *Router {
@@ -20,7 +22,10 @@ func NewRouter() *Router {
 		root: newNode(),
 		requestPool: sync.Pool{
 			New: func() interface{} {
-				return &Request{Headers: make([]Header, 0, 20)}
+				return &Request{
+					Headers: make([]Header, 0, 20),
+					Locals:  make([]KV, 0, 10),
+				}
 			},
 		},
 		bufferPool: sync.Pool{
@@ -39,8 +44,18 @@ func NewRouter() *Router {
 	}
 }
 
+func (r *Router) Use(mw ...Middleware) {
+	r.middlewares = append(r.middlewares, mw...)
+}
+
 func (r *Router) AddRoute(method string, path string, handler HandlerFunc) {
+
+	for i := len(r.middlewares) - 1; i >= 0; i-- {
+		handler = r.middlewares[i](handler)
+	}
+
 	r.root.insert(method, path, handler)
+
 }
 
 func (r *Router) ServeTCP(ctx context.Context, conn net.Conn) {
